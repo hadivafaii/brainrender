@@ -6,10 +6,10 @@ import numpy as np
 from myterial import amber, orange, salmon
 from loguru import logger
 
-from brainrender.camera import check_camera_param, get_camera_params
-from brainrender._video import Video
-import brainrender as br
-from brainrender._jupyter import not_on_jupyter
+from . import settings
+from .camera import check_camera_param, get_camera_params
+from ._video import Video
+from ._jupyter import not_on_jupyter
 
 
 class VideoMaker:
@@ -116,8 +116,8 @@ class VideoMaker:
         :param **kwargs: any extra keyword argument to be bassed to `make_frame_func`
         """
         logger.debug(f"Saving a video {duration}s long ({fps} fps)")
-        _off = br.settings.OFFSCREEN
-        br.settings.OFFSCREEN = True  # render offscreen
+        _off = settings.OFFSCREEN
+        settings.OFFSCREEN = True  # render offscreen
 
         self.scene.render(interactive=False, **render_kwargs)
 
@@ -150,7 +150,7 @@ class VideoMaker:
             print(f"[{amber}]Saved video at: [{orange} bold]{spath}")
 
         # finish up
-        br.settings.OFFSCREEN = _off
+        settings.OFFSCREEN = _off
         os.chdir(curdir)
         return spath
 

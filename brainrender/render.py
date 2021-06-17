@@ -1,5 +1,3 @@
-from vedo import Plotter, closePlotter
-from vedo import settings as vsettings
 import numpy as np
 from datetime import datetime
 from rich import print
@@ -8,26 +6,28 @@ from myterial import orange, amber, deep_purple_light, teal
 from rich.syntax import Syntax
 from loguru import logger
 
-from brainrender import settings
-from brainrender.camera import (
+from . import settings
+from .camera import (
     get_camera,
     check_camera_param,
     set_camera,
     get_camera_params,
 )
+from vedo import Plotter, closePlotter
+from vedo import settings as vsettings
 
 
 # mtx used to transform meshes to sort axes orientation
-mtx = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]
+mtx = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
 
 
 class Render:
     is_rendered = False
     plotter = None
 
-    axes_names = ("AP", "DV", "LR")
-    axes_lookup = {"x": "AP", "y": "DV", "z": "LR"}
-    axes_indices = {"AP": 0, "DV": 1, "LR": 2}
+    axes_names = ("AP", "SI", "LR")
+    axes_lookup = {"x": "AP", "y": "SI", "z": "LR"}
+    axes_indices = {"AP": 0, "SI": 1, "LR": 2}
 
     def __init__(self):
         """
@@ -85,7 +85,7 @@ class Render:
             axesLineWidth=3,
             tipSize=0,
             xtitle="AP (μm)",
-            ytitle="DV (μm)",
+            ytitle="SI (μm)",
             ztitle="LR (μm)",
             textScale=0.8,
             xTitleRotation=180,
@@ -129,7 +129,7 @@ class Render:
 
         # Add silhouette and labels
         if actor._needs_silhouette and not self.backend:
-            self.plotter.add(actor.make_silhouette().mesh)
+            self.plotter.add(actor.make_silhouette().mesh, render=settings.RENDER)
 
         if actor._needs_label and not self.backend:
             self.labels.extend(actor.make_label(self.atlas))
@@ -217,7 +217,7 @@ class Render:
             else:
                 label._mesh = label.mesh.clone()
                 self._prepare_actor(label)
-                self.plotter.add(label._mesh)
+                self.plotter.add(label._mesh, render=settings.RENDER)
                 label._is_added = True
 
         # Apply style
@@ -239,7 +239,7 @@ class Render:
                 interactive=interactive,
                 zoom=zoom,
                 bg=settings.BACKGROUND_COLOR,
-                offscreen=settings.OFFSCREEN,
+                # offscreen=settings.OFFSCREEN,
                 camera=camera.copy() if update_camera else None,
                 interactorStyle=0,
                 rate=40,
@@ -288,22 +288,32 @@ class Render:
         vsettings.notebookBackend = "k3d"
 
         # Create new plotter and save to file
-        plt = Plotter()
-        plt.add(self.renderables)
-        plt = plt.show(interactive=False)
-        plt.camera[-2] = -1
+        vedo_plt = Plotter()
+        vedo_plt.add(self.renderables, render=False)
+        k3d_plt = vedo_plt.show(interactive=False)
+
+        from .cameras import cameras
+        camera =\
+            cameras['three_quarters']['pos'] +\
+            cameras['three_quarters']['pos'] +\
+            cameras['three_quarters']['viewup']
+        camera = list(camera)
+        camera[0] -= 500
+        camera[1] -= 500
+        camera[2] += 500
+        k3d_plt.camera = camera
 
         with open(path, "w") as fp:
-            fp.write(plt.get_snapshot())
+            fp.write(k3d_plt.get_snapshot())    # compression_level=0))
+        k3d_plt.close()
 
         print(
-            f"The brainrender scene has been exported for web. The results are saved at {path}"
+            f"Scene saved at {path}"
         )
 
         # Reset settings
         vsettings.notebookBackend = None
         self.backend = _backend
-
         return str(path)
 
     def screenshot(self, name=None, scale=None):

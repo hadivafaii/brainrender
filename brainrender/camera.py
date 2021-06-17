@@ -1,7 +1,7 @@
 import vtk
 from loguru import logger
 
-from brainrender.cameras import cameras
+from .cameras import cameras
 
 
 def get_camera(camera):

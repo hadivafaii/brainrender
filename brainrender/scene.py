@@ -12,15 +12,16 @@ import pyinspect as pi
 from rich import print
 from loguru import logger
 from myterial import amber, orange, orange_darker, salmon
+from matplotlib.colors import rgb2hex
 
-from brainrender import settings
-from brainrender.atlas import Atlas
-from brainrender.render import Render
-from brainrender.actor import Actor
-from brainrender.actors import Volume
-from brainrender._utils import return_list_smart, listify
-from brainrender._io import load_mesh_from_file
-from brainrender._jupyter import not_on_jupyter, JupyterMixIn
+from . import settings
+from .atlas import Atlas
+from .render import Render
+from .actor import Actor
+from .actors import Volume
+from ._utils import return_list_smart, listify
+from ._io import load_mesh_from_file
+from ._jupyter import not_on_jupyter, JupyterMixIn
 
 
 class Scene(JupyterMixIn, Render):
@@ -114,7 +115,7 @@ class Scene(JupyterMixIn, Render):
         if settings.SHADER_STYLE == "cartoon":
             inset.lighting("off")
 
-    def add(self, *items, names=None, classes=None, transform=True, **kwargs):
+    def add(self, *items, names=None, classes=None, transform=True, colors=None, **kwargs):
         """
         General method to add Actors to the scene.
 
@@ -125,6 +126,7 @@ class Scene(JupyterMixIn, Render):
 
         :param names: names to be assigned to the Actors
         :param classs: br_classes to be assigned to the Actors
+        :param colors: colors to be assigned to the Actors
         :param **kwargs: parameters to be passed to the individual
             loading functions (e.g. to load from file and specify the color)
         """
@@ -133,12 +135,12 @@ class Scene(JupyterMixIn, Render):
 
         # turn items into Actors
         actors = []
-        for item, name, _class in zip(items, listify(names), listify(classes)):
+        for item, name, _class, color in zip(items, listify(names), listify(classes), listify(colors)):
             if item is None:
                 continue
 
             if isinstance(item, (Mesh, Assembly)):
-                actors.append(Actor(item, name=name, br_class=_class))
+                actors.append(Actor(item, name=name, br_class=_class, color=color))
 
             elif isinstance(item, Text2D):
                 # Mark text actors differently because they don't behave like
@@ -180,9 +182,9 @@ class Scene(JupyterMixIn, Render):
         # add actors to plotter
         for actor in actors:
             try:
-                self.plotter.add(actor._mesh)
+                self.plotter.add(actor._mesh, render=settings.RENDER)
             except AttributeError:  # e.g. for titles
-                self.plotter.add(actor.mesh)
+                self.plotter.add(actor.mesh, render=settings.RENDER)
 
         # Add to the lists actors
         self.actors.extend(actors)
@@ -203,15 +205,15 @@ class Scene(JupyterMixIn, Render):
             else:
                 # remove from plotter
                 try:
-                    self.plotter.remove(act._mesh)
+                    self.plotter.remove(act._mesh, render=settings.RENDER)
                 except AttributeError:
                     pass
 
                 if act.silhouette is not None:
-                    self.plotter.remove(act.silhouette.mesh)
+                    self.plotter.remove(act.silhouette.mesh, render=settings.RENDER)
 
                 for label in act.labels:
-                    self.plotter.remove(label.mesh)
+                    self.plotter.remove(label.mesh, render=settings.RENDER)
 
     def get_actors(self, name=None, br_class=None):
         """
@@ -363,8 +365,8 @@ class Scene(JupyterMixIn, Render):
                 actor.cap()
 
             if actor.silhouette is not None:
-                self.plotter.remove(actor.silhouette.mesh)
-                self.plotter.add(actor.make_silhouette().mesh)
+                self.plotter.remove(actor.silhouette.mesh, render=settings.RENDER)
+                self.plotter.add(actor.make_silhouette().mesh, render=settings.RENDER)
 
     @property
     def content(self):
@@ -378,7 +380,10 @@ class Scene(JupyterMixIn, Render):
 
         for act in self.actors:
             actors.add(
-                f"[bold][{amber}]- {act.name}[/bold][{orange_darker}] (type: [{orange}]{act.br_class}[/{orange}])"
+                f"[bold][{amber}]- {act.name}[/bold][{orange_darker}] "
+                f"(type: [{orange}]{act.br_class}[/{orange}]) "
+                f"(color: [{orange}]{rgb2hex(act.mesh.c())}[/{orange}]) "
+                f"(alpha: [{orange}]{act.mesh.alpha()}[/{orange}]) "
             )
 
         if "win32" != sys.platform:

@@ -5,8 +5,7 @@ import numpy as np
 from myterial import orange, salmon, amber
 from vedo import Text3D, Sphere
 
-
-from brainrender._utils import listify
+from ._utils import listify
 
 
 # transform matrix to fix labels orientation

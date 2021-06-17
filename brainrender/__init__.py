@@ -1,23 +1,27 @@
 import os
-from loguru import logger
 import sys
+from os.path import join as pjoin
+from loguru import logger
 from pathlib import Path
 from rich.logging import RichHandler
 
 try:
     from pyinspect import install_traceback
-
     install_traceback()
 except ImportError:
     pass  # fails in notebooks
 
-from brainrender import settings
-from brainrender.scene import Scene
-import brainrender.actors
-from brainrender.video import VideoMaker, Animation
+from . import settings, actors
+from .scene import Scene
+from .video import VideoMaker, Animation
 
 base_dir = Path(os.path.join(os.path.expanduser("~"), ".brainrender"))
 base_dir.mkdir(exist_ok=True)
+
+vedo_path = pjoin(os.environ['HOME'], 'Dropbox/git/vedo/vedo')
+sys.path.insert(0, vedo_path)
+import vedo
+from vedo import Plotter
 
 __version__ = "2.0.3.0rc"
 

@@ -3,10 +3,10 @@ from vedo import Plane
 import numpy as np
 from loguru import logger
 
-from brainrender import settings
-from brainrender.actor import Actor
-from brainrender._io import load_mesh_from_file
-from brainrender._utils import return_list_smart
+from . import settings
+from .actor import Actor
+from ._io import load_mesh_from_file
+from ._utils import return_list_smart
 
 
 class Atlas(BrainGlobeAtlas):
